@@ -1,0 +1,1 @@
+1-establish a list of keywords , reserved words , operations , punctuations.

@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "compiler",
+    "cli",
+    "lsp",
+]
+resolver = "2"

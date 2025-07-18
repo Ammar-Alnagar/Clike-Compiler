@@ -4,8 +4,10 @@ use d_compiler::lexer::token::{Token, TokenInfo};
 
 use lsp_server::{Connection, Message, Request, RequestId, Response};
 use lsp_types::{
+    DidChangeTextDocumentParams,
     InitializeParams, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind,
 };
+use lsp_types::notification::{PublishDiagnostics, Notification};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Create the transport
@@ -16,6 +18,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         text_document_sync: Some(TextDocumentSyncCapability::Kind(
             TextDocumentSyncKind::FULL,
         )),
+        completion_provider: Some(lsp_types::CompletionOptions {
+            resolve_provider: Some(false),
+            trigger_characters: Some(vec![".".to_string()]),
+            ..Default::default()
+        }),
         ..ServerCapabilities::default()
     })
     .unwrap();
@@ -71,6 +78,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                             }))?;
                         }
                     }
+                    "textDocument/completion" => {
+                        let (id, _params) = cast::<lsp_types::request::Completion>(req)?;
+                        let completions = get_completions();
+                        let result = Some(lsp_types::CompletionResponse::Array(completions));
+                        let result = serde_json::to_value(&result).unwrap();
+                        let resp = Response { id, result: Some(result), error: None };
+                        connection.sender.send(Message::Response(resp))?;
+                    }
                     _ => (),
                 }
             }
@@ -80,7 +95,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             Message::Notification(not) => {
-                eprintln!("got notification: {:?}", not);
+                match not.method.as_str() {
+                    "textDocument/didChange" => {
+                        let params: DidChangeTextDocumentParams = serde_json::from_value(not.params).unwrap();
+                        let uri = params.text_document.uri;
+                        let content = params.content_changes[0].text.clone();
+                        let diagnostics = get_diagnostics(&content);
+                        let params = lsp_types::PublishDiagnosticsParams {
+                            uri,
+                            diagnostics,
+                            version: None,
+                        };
+                        let notification = lsp_server::Notification::new(PublishDiagnostics::METHOD.to_string(), params);
+                        connection.sender.send(Message::Notification(notification))?;
+                    }
+                    _ => (),
+                }
             }
         }
     }
@@ -112,4 +142,54 @@ fn format_token_info(token_info: &TokenInfo) -> String {
         Token::Eof => "End of file".to_string(),
     };
     format!("```\n{}\n```", token_type)
+}
+
+fn get_diagnostics(content: &str) -> Vec<lsp_types::Diagnostic> {
+    match d_compiler::compile(content) {
+        Ok(_) => Vec::new(),
+        Err(err) => {
+            let range = lsp_types::Range {
+                start: lsp_types::Position {
+                    line: 0,
+                    character: 0,
+                },
+                end: lsp_types::Position {
+                    line: 0,
+                    character: 0,
+                },
+            };
+            let diagnostic = lsp_types::Diagnostic {
+                range,
+                severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                message: err,
+                ..Default::default()
+            };
+            vec![diagnostic]
+        }
+    }
+}
+
+fn get_completions() -> Vec<lsp_types::CompletionItem> {
+    vec![
+        lsp_types::CompletionItem {
+            label: "true".to_string(),
+            kind: Some(lsp_types::CompletionItemKind::KEYWORD),
+            ..Default::default()
+        },
+        lsp_types::CompletionItem {
+            label: "false".to_string(),
+            kind: Some(lsp_types::CompletionItemKind::KEYWORD),
+            ..Default::default()
+        },
+        lsp_types::CompletionItem {
+            label: "if".to_string(),
+            kind: Some(lsp_types::CompletionItemKind::KEYWORD),
+            ..Default::default()
+        },
+        lsp_types::CompletionItem {
+            label: "else".to_string(),
+            kind: Some(lsp_types::CompletionItemKind::KEYWORD),
+            ..Default::default()
+        },
+    ]
 }

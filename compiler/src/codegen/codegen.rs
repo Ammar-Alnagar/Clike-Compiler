@@ -1,8 +1,3 @@
-use wasm_encoder::{
-    CodeSection, ExportKind, ExportSection, Function, FunctionSection, Instruction, Module,
-    TypeSection, ValType,
-};
-
 use crate::parser::ast::Expr;
 
 pub struct CodeGenerator {}

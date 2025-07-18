@@ -117,7 +117,7 @@ impl Lexer {
                 if self.peek() == '/' {
                     self.advance();
                     Token::Punctuation(Punctuation::Comment)
-                } else if (self.peek() == '*') {
+                } else if self.peek() == '*' {
                     self.advance();
                     Token::Punctuation(Punctuation::CommentBlkStr)
                 } else {

@@ -3,5 +3,6 @@ members = [
     "compiler",
     "cli",
     "lsp",
+    "dap",
 ]
 resolver = "2"

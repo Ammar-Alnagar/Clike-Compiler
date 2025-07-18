@@ -74,6 +74,8 @@ pub enum Reserved {
     TypeDef,
 }
 
+use std::fmt::{Display, Formatter};
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Identifier(String),
@@ -86,6 +88,23 @@ pub enum Token {
     Newline,
     Eof,
     Invalid(String),
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Token::Identifier(s) => write!(f, "{}", s),
+            Token::Number(n) => write!(f, "{}", n),
+            Token::String(s) => write!(f, "{}", s),
+            Token::Reserved(r) => write!(f, "{:?}", r),
+            Token::Operation(o) => write!(f, "{:?}", o),
+            Token::Punctuation(p) => write!(f, "{:?}", p),
+            Token::Whitespace => write!(f, " "),
+            Token::Newline => write!(f, "\n"),
+            Token::Eof => write!(f, "Eof"),
+            Token::Invalid(s) => write!(f, "Invalid({})", s),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

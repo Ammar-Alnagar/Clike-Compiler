@@ -37,12 +37,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let content = std::fs::read_to_string(file_path).unwrap();
                         let position = params.text_document_position_params.position;
                         let mut lexer = Lexer::new(&content);
-                        let tokens = lexer.tokenize();
+                        let tokens = lexer.tokenize().unwrap_or_default();
 
-                        let token = tokens.iter().find(|token| {
-                            let token_line = token.line as u32;
-                            let token_start_column = token.column as u32;
-                            let token_end_column = token_start_column + token.lexeme.len() as u32;
+                        let token = tokens.iter().find(|token_info| {
+                            let token_line = token_info.line as u32 - 1;
+                            let token_start_column = token_info.column as u32 - 1;
+                            let token_end_column = token_start_column + token_info.lexeme.len() as u32;
 
                             position.line == token_line
                                 && position.character >= token_start_column
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                         let hover_content = token.map_or_else(
                             || "No token found".to_string(),
-                            |token| format_token_info(token),
+                            |token_info| format_token_info(token_info),
                         );
 
                         let result = Some(lsp_types::Hover {

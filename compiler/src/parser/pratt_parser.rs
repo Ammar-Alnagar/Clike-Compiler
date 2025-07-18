@@ -16,12 +16,12 @@ enum Precedence {
     Primary,
 }
 
-pub struct PrattParser {
+pub struct Parser {
     tokens: Vec<TokenInfo>,
     current: usize,
 }
 
-impl PrattParser {
+impl Parser {
     pub fn new(tokens: Vec<TokenInfo>) -> Self {
         Self { tokens, current: 0 }
     }

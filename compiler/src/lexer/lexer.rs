@@ -17,13 +17,19 @@ impl Lexer {
         }
     }
 
-    pub fn tokenize(&mut self) -> Vec<TokenInfo> {
+    pub fn tokenize(&mut self) -> Result<Vec<TokenInfo>, String> {
         let mut tokens = Vec::new();
 
         while !self.is_at_end() {
             let token_info = self.next_token();
             // Skip whitespace tokens for cleaner output
             if !matches!(token_info.token, Token::Whitespace) {
+                if let Token::Invalid(msg) = &token_info.token {
+                    return Err(format!(
+                        "Invalid token at line {}, column {}: {}",
+                        token_info.line, token_info.column, msg
+                    ));
+                }
                 tokens.push(token_info);
             }
         }
@@ -35,7 +41,7 @@ impl Lexer {
             self.column,
         ));
 
-        tokens
+        Ok(tokens)
     }
 
     fn next_token(&mut self) -> TokenInfo {
